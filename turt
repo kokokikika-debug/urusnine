@@ -1,0 +1,48 @@
+local _Workspace = game:GetService("Workspace")
+
+local autoReloadTurret = true
+
+task.spawn(function()
+    while autoReloadTurret do
+        task.wait(1)
+        pcall(function()
+            local structs = _Workspace:FindFirstChild("Structures")
+            local items = _Workspace:FindFirstChild("Items")
+            if not structs or not items then return end
+            
+            local turretsNeedingAmmo = {}
+            for _, struct in ipairs(structs:GetChildren()) do
+                if struct.Name == "Candy Turret" then
+                    local gun = struct:FindFirstChild("Gun")
+                    local main = gun and gun:FindFirstChild("Main")
+                    local ammo = main and main:FindFirstChild("Ammo")
+                    local textLabel = ammo and ammo:FindFirstChild("TextLabel")
+                    if textLabel and string.find(textLabel.Text, "Reload with rifle ammo") then
+                        table.insert(turretsNeedingAmmo, struct)
+                    end
+                end
+            end
+            
+            if #turretsNeedingAmmo > 0 then
+                for _, item in ipairs(items:GetChildren()) do
+                    if not autoReloadTurret then break end
+                    if item:IsA("Model") and item.Name == "Rifle Ammo" and item:GetAttribute("Interaction") ~= nil and not item:GetAttribute("Burning") then
+                        local targetPos = (turretsNeedingAmmo[1]:GetPivot() * CFrame.new(0.2, 3.5, -0.05)).Position
+                        
+                        if not item.PrimaryPart then
+                            local root = item:FindFirstChild("HumanoidRootPart") or item:FindFirstChildWhichIsA("BasePart")
+                            if root then item.PrimaryPart = root end
+                        end
+                        if item.PrimaryPart then
+                            item:SetPivot(CFrame.new(targetPos))
+                        end
+                        task.wait(0.2)
+                        break
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+print("✅ Auto Reload Candy Turret Active!")
