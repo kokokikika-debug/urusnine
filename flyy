@@ -1,6 +1,3 @@
--- KIX HUB - 99 Nights in the Forest
--- Custom UI Refactored with NaN God Mode, Custom Bring, & Advanced Movement/Vision Logics
-
 
 local KixHubSavedState = getgenv().KixHubSavedState
 if type(KixHubSavedState) ~= "table" then
@@ -2003,11 +2000,94 @@ local function UpgradeToggle(tog)
         local container = tog.ToggleFrame.UIElements.Container
         local switch = tog.ToggleFrame.UIElements.Main:FindFirstChild("ToggleFrame", true)
         if container and switch then
-            -- 1. Clickable container (Menggunakan InputBegan agar tidak merusak UIListLayout)
+            -- =====================================================
+            -- CLICKABLE CONTAINER
+            -- PC  = langsung toggle
+            -- HP  = toggle hanya kalau benar-benar TAP
+            --       bukan saat scroll
+            -- =====================================================
+
+            local UIS = game:GetService("UserInputService")
+
+            local touchStart = nil
+            local touchMoved = false
+
+            local TOUCH_THRESHOLD = 12
+
             container.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+
+                -- PC / Mouse
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     tog:Set(not tog.Value)
+                    return
                 end
+
+                -- Mobile
+                if input.UserInputType == Enum.UserInputType.Touch then
+                    local switch = tog.ToggleFrame.UIElements.Main:FindFirstChild("ToggleFrame", true)
+
+                    if switch then
+                        local p = input.Position
+                        local pos = switch.AbsolutePosition
+                        local size = switch.AbsoluteSize
+
+                        local insideSwitch =
+                            p.X >= pos.X and
+                            p.X <= pos.X + size.X and
+                            p.Y >= pos.Y and
+                            p.Y <= pos.Y + size.Y
+
+                        if insideSwitch then
+                            touchStart = nil
+                            touchMoved = false
+                            return
+                        end
+                    end
+
+                    touchStart = input.Position
+                    touchMoved = false
+                end
+            end)
+
+            container.InputChanged:Connect(function(input)
+
+                if input.UserInputType ~= Enum.UserInputType.Touch then
+                    return
+                end
+
+                if not touchStart then
+                    return
+                end
+
+                local delta = input.Position - touchStart
+
+                if delta.Magnitude >= TOUCH_THRESHOLD then
+                    touchMoved = true
+                end
+            end)
+
+            UIS.InputEnded:Connect(function(input)
+
+                if input.UserInputType ~= Enum.UserInputType.Touch then
+                    return
+                end
+
+                if not touchStart then
+                    return
+                end
+
+                local wasMoved = touchMoved
+
+                touchStart = nil
+                touchMoved = false
+
+                -- Scroll / drag → jangan toggle
+                if wasMoved then
+                    return
+                end
+
+                -- Tap biasa → toggle
+                tog:Set(not tog.Value)
             end)
             
             -- 2. Lightning/Pulse Icon & Elegant Blue Active Color
