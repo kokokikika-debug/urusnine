@@ -650,7 +650,6 @@ Language=string.match(g.SystemLocaleId,"^[a-z]+"),
 Request=http_request or(syn and syn.request)or request,
 DefaultProperties={
 ScreenGui={
-DisplayOrder=999999999,
 ResetOnSpawn=false,
 ZIndexBehavior="Sibling",
 },
@@ -7121,133 +7120,29 @@ ai:Set(ak,false,ah.Window.NewElements)
 local an=ah.WindUI.GenerateGUID()
 
 if ah.Window.NewElements and am.Animate then
-    if ai.Type=="Toggle" then
+if ai.Type=="Toggle"then
+aa.AddSignal(al.ToggleFrame.Hitbox.InputBegan,function(ao)
+if
+not ah.Window.IsToggleDragging
+and(
+ao.UserInputType==Enum.UserInputType.MouseButton1
+or ao.UserInputType==Enum.UserInputType.Touch
+)
+then
+if ah.WindUI.CurrentInput and ah.WindUI.CurrentInput~=an then
+return
+end
 
-        local UIS=game:GetService("UserInputService")
+ah.WindUI.CurrentInput=an
+am:Animate(ao,ai)
+end
+end)
+end
 
-        local touchStart=nil
-        local touchMoved=false
-        local TOUCH_THRESHOLD=18
 
-        -- =====================================================
-        -- TOUCH START
-        -- JANGAN TOGGLE DI SINI
-        -- =====================================================
-        aa.AddSignal(
-            al.ToggleFrame.Hitbox.InputBegan,
-            function(input)
 
-                if input.UserInputType~=Enum.UserInputType.Touch then
-                    return
-                end
 
-                if ah.Window.IsToggleDragging then
-                    return
-                end
 
-                if ah.WindUI.CurrentInput
-                and ah.WindUI.CurrentInput~=an then
-                    return
-                end
-
-                touchStart=input.Position
-                touchMoved=false
-
-                ah.WindUI.CurrentInput=an
-            end
-        )
-
-        -- =====================================================
-        -- TRACK TOUCH
-        -- =====================================================
-        aa.AddSignal(
-            UIS.InputChanged,
-            function(input)
-
-                if not touchStart then
-                    return
-                end
-
-                if input.UserInputType~=Enum.UserInputType.Touch then
-                    return
-                end
-
-                local delta=input.Position-touchStart
-
-                if delta.Magnitude>=TOUCH_THRESHOLD then
-                    touchMoved=true
-                end
-            end
-        )
-
-        -- =====================================================
-        -- TOUCH END
-        -- BARU DI SINI TOGGLE
-        -- =====================================================
-        aa.AddSignal(
-            UIS.InputEnded,
-            function(input)
-
-                if input.UserInputType~=Enum.UserInputType.Touch then
-                    return
-                end
-
-                if not touchStart then
-                    return
-                end
-
-                local wasMoved=touchMoved
-
-                touchStart=nil
-                touchMoved=false
-
-                ah.WindUI.CurrentInput=nil
-
-                -- =============================================
-                -- SCROLL
-                -- JANGAN TOGGLE
-                -- =============================================
-                if wasMoved then
-                    return
-                end
-
-                -- =============================================
-                -- TAP BENAR-BENAR
-                -- =============================================
-                ai:Set(
-                    not ai.Value,
-                    true,
-                    ah.Window.NewElements
-                )
-            end
-        )
-
-        -- =====================================================
-        -- MOUSE / PC
-        -- Tetap memakai Animate bawaan
-        -- =====================================================
-        aa.AddSignal(
-            al.ToggleFrame.Hitbox.InputBegan,
-            function(input)
-
-                if input.UserInputType~=Enum.UserInputType.MouseButton1 then
-                    return
-                end
-
-                if ah.Window.IsToggleDragging then
-                    return
-                end
-
-                if ah.WindUI.CurrentInput
-                and ah.WindUI.CurrentInput~=an then
-                    return
-                end
-
-                ah.WindUI.CurrentInput=an
-                am:Animate(input,ai)
-            end
-        )
-    end
 else
 if ai.Type=="Toggle"then
 aa.AddSignal(al.ToggleFrame.Hitbox.MouseButton1Click,function()
