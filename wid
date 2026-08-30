@@ -7121,92 +7121,198 @@ ai:Set(ak,false,ah.Window.NewElements)
 local an=ah.WindUI.GenerateGUID()
 
 if ah.Window.NewElements and am.Animate then
-if ai.Type=="Toggle"then
-aa.AddSignal(al.ToggleFrame.Hitbox.InputBegan,function(ao)
+    if ai.Type=="Toggle" then
 
-    if ah.Window.IsToggleDragging then
-        return
-    end
+        -- =====================================================
+        -- 1. SWITCH ASLI
+        -- Tepat pada switch = 1 TAP
+        -- =====================================================
+        aa.AddSignal(al.ToggleFrame.Hitbox.InputBegan,function(ao)
 
-    if
-        ao.UserInputType~=Enum.UserInputType.MouseButton1
-        and ao.UserInputType~=Enum.UserInputType.Touch
-    then
-        return
-    end
+            if ah.Window.IsToggleDragging then
+                return
+            end
 
-    if ah.WindUI.CurrentInput and ah.WindUI.CurrentInput~=an then
-        return
-    end
+            if
+                ao.UserInputType~=Enum.UserInputType.MouseButton1
+                and ao.UserInputType~=Enum.UserInputType.Touch
+            then
+                return
+            end
 
-    -- =====================================================
-    -- CEK APAKAH TOUCH TEPAT DI SWITCH
-    -- =====================================================
-    local position = ao.Position
+            if ah.WindUI.CurrentInput and ah.WindUI.CurrentInput~=an then
+                return
+            end
 
-    local switchPos = al.AbsolutePosition
-    local switchSize = al.AbsoluteSize
+            -- Switch asli tetap single tap
+            ah.WindUI.CurrentInput=an
+            am:Animate(ao,ai)
+        end)
 
-    local insideSwitch =
-        position.X >= switchPos.X
-        and position.X <= switchPos.X + switchSize.X
-        and position.Y >= switchPos.Y
-        and position.Y <= switchPos.Y + switchSize.Y
 
-    -- =====================================================
-    -- MOUSE / DESKTOP
-    -- Tetap normal: sekali klik
-    -- =====================================================
-    if ao.UserInputType==Enum.UserInputType.MouseButton1 then
+        -- =====================================================
+        -- 2. AREA ROW / TEXT
+        -- Harus DOUBLE TAP
+        -- =====================================================
+        local rowTouchActive=false
+        local rowTouchMoved=false
+        local rowTouchStart=nil
+        local rowTouchTime=0
 
-        ah.WindUI.CurrentInput=an
-        am:Animate(ao,ai)
-        return
-    end
+        local ROW_MOVE_THRESHOLD=12
+        local DOUBLE_TAP_TIME=0.35
 
-    -- =====================================================
-    -- MOBILE
-    -- Tepat switch = 1 TAP
-    -- Area tulisan/row = 2 TAP
-    -- =====================================================
-    if insideSwitch then
+        local function isTouchInput(input)
+            return input.UserInputType==Enum.UserInputType.Touch
+        end
 
-        ah.WindUI.CurrentInput=an
-        am:Animate(ao,ai)
-        return
-    end
+        -- Input mulai di area element/row
+        aa.AddSignal(ai.ToggleFrame.UIElements.Main.InputBegan,function(input)
 
-    -- =====================================================
-    -- TOUCH DI AREA ROW / TULISAN
-    -- Perlu DOUBLE TAP
-    -- =====================================================
-    local now = tick()
+            if not isTouchInput(input) then
+                return
+            end
 
-    if ai._LastRowTap and (now-ai._LastRowTap) <= 0.35 then
+            if ah.Window.IsToggleDragging then
+                return
+            end
 
-        ai._LastRowTap=nil
+            -- Kalau touch benar-benar mengenai switch,
+            -- biarkan Hitbox yang menangani.
+            local pos=input.Position
 
-        ah.WindUI.CurrentInput=an
-        am:Animate(ao,ai)
+            local switch=al.ToggleFrame
+            local switchPos=switch.AbsolutePosition
+            local switchSize=switch.AbsoluteSize
 
-    else
+            local insideSwitch =
+                pos.X>=switchPos.X
+                and pos.X<=switchPos.X+switchSize.X
+                and pos.Y>=switchPos.Y
+                and pos.Y<=switchPos.Y+switchSize.Y
 
-        -- TAP PERTAMA:
-        -- jangan lakukan apa-apa
-        ai._LastRowTap=now
+            if insideSwitch then
+                return
+            end
 
-        task.delay(0.4,function()
-            if ai._LastRowTap == now then
-                ai._LastRowTap=nil
+            rowTouchActive=true
+            rowTouchMoved=false
+            rowTouchStart=input.Position
+
+            local now=tick()
+
+            -- Double tap?
+            if now-rowTouchTime<=DOUBLE_TAP_TIME then
+
+                rowTouchTime=0
+
+                -- Tandai input sekarang sedang menunggu release
+                -- untuk memastikan user tidak sedang scroll.
+                rowTouchActive=true
+
+            else
+                -- Tap pertama hanya disimpan.
+                rowTouchTime=now
+            end
+        end)
+
+
+        -- =====================================================
+        -- 3. DETEKSI GERAK SCROLL
+        -- Kalau bergerak cukup jauh = CANCEL
+        -- =====================================================
+        aa.AddSignal(ai.ToggleFrame.UIElements.Main.InputChanged,function(input)
+
+            if not rowTouchActive then
+                return
+            end
+
+            if not isTouchInput(input) then
+                return
+            end
+
+            if not rowTouchStart then
+                return
+            end
+
+            local delta=input.Position-rowTouchStart
+
+            if delta.Magnitude>=ROW_MOVE_THRESHOLD then
+                rowTouchMoved=true
+            end
+        end)
+
+
+        -- =====================================================
+        -- 4. TOUCH END
+        -- Cuma double tap yang benar-benar mengubah toggle
+        -- =====================================================
+        aa.AddSignal(ai.ToggleFrame.UIElements.Main.InputEnded,function(input)
+
+            if not rowTouchActive then
+                return
+            end
+
+            if not isTouchInput(input) then
+                return
+            end
+
+            rowTouchActive=false
+
+            -- User sedang scroll / drag
+            if rowTouchMoved then
+                rowTouchMoved=false
+                rowTouchStart=nil
+                return
+            end
+
+            rowTouchMoved=false
+            rowTouchStart=nil
+
+            local now=tick()
+
+            -- Karena tap pertama disimpan di rowTouchTime:
+            -- tap kedua dalam 0.35 detik = toggle.
+            if rowTouchTime~=0 and now-rowTouchTime<=DOUBLE_TAP_TIME then
+
+                rowTouchTime=0
+
+                if ah.WindUI.CurrentInput and ah.WindUI.CurrentInput~=an then
+                    return
+                end
+
+                ai:Set(
+                    not ai.Value,
+                    true,
+                    ah.Window.NewElements
+                )
+
+            else
+                -- Tap pertama saja → jangan lakukan apa-apa
+                rowTouchTime=now
+
+                task.delay(DOUBLE_TAP_TIME,function()
+                    if rowTouchTime~=0
+                    and tick()-rowTouchTime>DOUBLE_TAP_TIME
+                    then
+                        rowTouchTime=0
+                    end
+                end)
             end
         end)
 
     end
-end)
-
-
-
-
+else
+    if ai.Type=="Toggle" then
+        aa.AddSignal(al.ToggleFrame.Hitbox.MouseButton1Click,function()
+            ai:Set(not ai.Value,nil,ah.Window.NewElements)
+        end)
+    elseif ai.Type=="Checkbox" then
+        aa.AddSignal(al.MouseButton1Click,function()
+            ai:Set(not ai.Value,nil,ah.Window.NewElements)
+        end)
+    end
+end
 
 else
 if ai.Type=="Toggle"then
