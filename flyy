@@ -1,4 +1,3 @@
-
 local KixHubSavedState = getgenv().KixHubSavedState
 if type(KixHubSavedState) ~= "table" then
     KixHubSavedState = {}
@@ -2000,93 +1999,124 @@ local function UpgradeToggle(tog)
         local container = tog.ToggleFrame.UIElements.Container
         local switch = tog.ToggleFrame.UIElements.Main:FindFirstChild("ToggleFrame", true)
         if container and switch then
-            -- =====================================================
+           -- =====================================================
             -- CLICKABLE CONTAINER
-            -- PC  = langsung toggle
-            -- HP  = toggle hanya kalau benar-benar TAP
-            --       bukan saat scroll
+            -- PC  : sekali klik
+            -- HP  : TAP saja, scroll langsung dibatalkan
             -- =====================================================
 
             local UIS = game:GetService("UserInputService")
 
+            local touchInput = nil
             local touchStart = nil
-            local touchMoved = false
+            local touchCancelled = false
 
-            local TOUCH_THRESHOLD = 12
+            -- Sengaja kecil.
+            -- Bergerak sedikit saja sudah dianggap scroll/drag.
+            local TOUCH_THRESHOLD = 2
 
             container.InputBegan:Connect(function(input)
 
-                -- PC / Mouse
+                -- =================================================
+                -- PC
+                -- =================================================
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     tog:Set(not tog.Value)
                     return
                 end
 
-                -- Mobile
-                if input.UserInputType == Enum.UserInputType.Touch then
-                    local switch = tog.ToggleFrame.UIElements.Main:FindFirstChild("ToggleFrame", true)
-
-                    if switch then
-                        local p = input.Position
-                        local pos = switch.AbsolutePosition
-                        local size = switch.AbsoluteSize
-
-                        local insideSwitch =
-                            p.X >= pos.X and
-                            p.X <= pos.X + size.X and
-                            p.Y >= pos.Y and
-                            p.Y <= pos.Y + size.Y
-
-                        if insideSwitch then
-                            touchStart = nil
-                            touchMoved = false
-                            return
-                        end
-                    end
-
-                    touchStart = input.Position
-                    touchMoved = false
-                end
-            end)
-
-            container.InputChanged:Connect(function(input)
-
+                -- =================================================
+                -- MOBILE
+                -- =================================================
                 if input.UserInputType ~= Enum.UserInputType.Touch then
                     return
                 end
 
-                if not touchStart then
+                -- Jangan ambil touch kalau sedang dipakai elemen lain
+                if touchInput then
+                    return
+                end
+
+                -- -----------------------------------------------
+                -- Cek apakah user menekan switch kecil
+                -- Switch punya handler sendiri.
+                -- -----------------------------------------------
+                local switch = tog.ToggleFrame.UIElements.Main:FindFirstChild("ToggleFrame", true)
+
+                if switch then
+                    local p = input.Position
+                    local pos = switch.AbsolutePosition
+                    local size = switch.AbsoluteSize
+
+                    local insideSwitch =
+                        p.X >= pos.X
+                        and p.X <= pos.X + size.X
+                        and p.Y >= pos.Y
+                        and p.Y <= pos.Y + size.Y
+
+                    if insideSwitch then
+                        return
+                    end
+                end
+
+                touchInput = input
+                touchStart = input.Position
+                touchCancelled = false
+            end)
+
+
+            -- =====================================================
+            -- GLOBAL TOUCH MOVEMENT
+            -- Ini sengaja pakai UIS, bukan container.
+            -- Jadi walaupun jari keluar dari card, tetap terdeteksi.
+            -- =====================================================
+
+            UIS.InputChanged:Connect(function(input)
+
+                if not touchInput then
+                    return
+                end
+
+                if input ~= touchInput then
                     return
                 end
 
                 local delta = input.Position - touchStart
 
+                -- Gerak sedikit saja = BATAL
                 if delta.Magnitude >= TOUCH_THRESHOLD then
-                    touchMoved = true
+                    touchCancelled = true
                 end
             end)
 
+
+            -- =====================================================
+            -- TOUCH END
+            -- HANYA toggle kalau benar-benar TAP.
+            -- =====================================================
+
             UIS.InputEnded:Connect(function(input)
 
-                if input.UserInputType ~= Enum.UserInputType.Touch then
+                if not touchInput then
                     return
                 end
 
-                if not touchStart then
+                if input ~= touchInput then
                     return
                 end
 
-                local wasMoved = touchMoved
+                local cancelled = touchCancelled
 
+                touchInput = nil
                 touchStart = nil
-                touchMoved = false
+                touchCancelled = false
 
-                -- Scroll / drag → jangan toggle
-                if wasMoved then
+                -- Scroll / geser sedikit saja = JANGAN TOGGLE
+                if cancelled then
                     return
                 end
 
-                -- Tap biasa → toggle
+                -- Benar-benar tap
                 tog:Set(not tog.Value)
             end)
             
