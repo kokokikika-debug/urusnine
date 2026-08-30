@@ -650,6 +650,7 @@ Language=string.match(g.SystemLocaleId,"^[a-z]+"),
 Request=http_request or(syn and syn.request)or request,
 DefaultProperties={
 ScreenGui={
+DisplayOrder=999999999,
 ResetOnSpawn=false,
 ZIndexBehavior="Sibling",
 },
@@ -6788,127 +6789,247 @@ end)
 end
 
 function am.Animate(av,aw,ax)
-if not al.Window.IsToggleDragging then
-al.Window.IsToggleDragging=true
+    if not al.Window.IsToggleDragging then
+        al.Window.IsToggleDragging=true
 
-local ay=aw.Position.X
-local az=aw.Position.Y
-local aA=aq.Frame.Position.X.Offset
-local aB=false
-local b=false
+        local ay=aw.Position.X
+        local az=aw.Position.Y
+        local aA=aq.Frame.Position.X.Offset
 
-ad(
-aq.Frame.Bar.UIScale,
-0.28,
-{Scale=1.5},
-Enum.EasingStyle.Quint,
-Enum.EasingDirection.Out
-):Play()
-ad(
-aq.Frame.Bar.Highlight.BarOverlay,
-0.28,
-{ImageTransparency=0.86},
-Enum.EasingStyle.Quint,
-Enum.EasingDirection.Out
-):Play()
+        local aB=false
+        local b=false
+        local cancelled=false
 
-if ar then
-ar:Disconnect()
-end
+        local TOUCH_THRESHOLD=12
 
-ar=ae.InputChanged:Connect(function(d)
-if not al.Window.IsToggleDragging then
-return
-end
-if
-d.UserInputType~=Enum.UserInputType.MouseMovement
-and d.UserInputType~=Enum.UserInputType.Touch
-then
-return
-end
-if aB then
-return
-end
+        ad(
+            aq.Frame.Bar.UIScale,
+            0.28,
+            {Scale=1.5},
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.Out
+        ):Play()
 
-local f=math.abs(d.Position.X-ay)
-math.abs(d.Position.Y-az)
+        ad(
+            aq.Frame.Bar.Highlight.BarOverlay,
+            0.28,
+            {ImageTransparency=0.86},
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.Out
+        ):Play()
 
-if not b and f>8 then
-b=true
-end
+        if ar then
+            ar:Disconnect()
+        end
 
-local g=d.Position.X-ay
-local h=math.max(2,math.min(aA+g,au-at-2))
+        ar=ae.InputChanged:Connect(function(d)
+            if not al.Window.IsToggleDragging then
+                return
+            end
 
-local i=math.clamp((h-2)/(au-at-4),0,1)
+            if
+                d.UserInputType~=Enum.UserInputType.MouseMovement
+                and d.UserInputType~=Enum.UserInputType.Touch
+            then
+                return
+            end
 
-local l,m,p=am:GetGlassFrame(i)
-aq.Frame.Bar.Highlight.Glass.Image=l
-aq.Frame.Bar.Highlight.Glass.ImageRectSize=m
-aq.Frame.Bar.Highlight.Glass.ImageRectOffset=p
+            if aB or cancelled then
+                return
+            end
 
-ad(aq.Frame,0.12,{
-Position=UDim2.new(0,h,0.5,0),
-},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
-end)
+            local dx=d.Position.X-ay
+            local dy=d.Position.Y-az
 
-if as then
-as:Disconnect()
-end
+            local absX=math.abs(dx)
+            local absY=math.abs(dy)
 
-as=ae.InputEnded:Connect(function(d)
-if not al.Window.IsToggleDragging then
-return
-end
-if
-d.UserInputType~=Enum.UserInputType.MouseButton1
-and d.UserInputType~=Enum.UserInputType.Touch
-then
-return
-end
+            -- =================================================
+            -- MOBILE TOUCH DETECTION
+            -- =================================================
+            if d.UserInputType==Enum.UserInputType.Touch then
 
-al.Window.IsToggleDragging=false
+                -- Belum cukup bergerak = jangan lakukan apa-apa
+                if not b then
 
-if ar then
-ar:Disconnect()
-ar=nil
-end
-if as then
-as:Disconnect()
-as=nil
-end
+                    if math.sqrt(dx*dx+dy*dy) < TOUCH_THRESHOLD then
+                        return
+                    end
 
-al.WindUI.CurrentInput=nil
+                    -- Gerakan vertikal = SCROLL
+                    if absY > absX then
+                        cancelled=true
+                        aB=true
+                        al.Window.IsToggleDragging=false
 
-if aB then
-return
-end
+                        if ar then
+                            ar:Disconnect()
+                            ar=nil
+                        end
 
-if not b then
-ax:Set(not ax.Value,true,false)
-else
-local f=aq.Frame.Position.X.Offset
-local g=f+at/2
-local h=g>au/2
-ax:Set(h,true,false)
-end
+                        if as then
+                            as:Disconnect()
+                            as=nil
+                        end
 
-ad(
-aq.Frame.Bar.UIScale,
-0.23,
-{Scale=1},
-Enum.EasingStyle.Quint,
-Enum.EasingDirection.Out
-):Play()
-ad(
-aq.Frame.Bar.Highlight.BarOverlay,
-0.23,
-{ImageTransparency=0},
-Enum.EasingStyle.Quint,
-Enum.EasingDirection.Out
-):Play()
-end)
-end
+                        al.WindUI.CurrentInput=nil
+
+                        -- Kembalikan knob ke posisi awal
+                        aq.Frame.Position=UDim2.new(
+                            0,
+                            aA,
+                            0.5,
+                            0
+                        )
+
+                        -- Reset efek visual
+                        ad(
+                            aq.Frame.Bar.UIScale,
+                            0.23,
+                            {Scale=1},
+                            Enum.EasingStyle.Quint,
+                            Enum.EasingDirection.Out
+                        ):Play()
+
+                        ad(
+                            aq.Frame.Bar.Highlight.BarOverlay,
+                            0.23,
+                            {ImageTransparency=0},
+                            Enum.EasingStyle.Quint,
+                            Enum.EasingDirection.Out
+                        ):Play()
+
+                        return
+                    end
+
+                    -- Gerakan horizontal = baru dianggap drag
+                    b=true
+                end
+
+            else
+                -- =================================================
+                -- MOUSE
+                -- =================================================
+                if not b and absX>8 then
+                    b=true
+                end
+            end
+
+            -- Belum menjadi drag
+            if not b then
+                return
+            end
+
+            -- =================================================
+            -- HORIZONTAL DRAG
+            -- =================================================
+            local g=dx
+            local h=math.max(
+                2,
+                math.min(aA+g,au-at-2)
+            )
+
+            local i=math.clamp(
+                (h-2)/(au-at-4),
+                0,
+                1
+            )
+
+            local l,m,p=am:GetGlassFrame(i)
+
+            aq.Frame.Bar.Highlight.Glass.Image=l
+            aq.Frame.Bar.Highlight.Glass.ImageRectSize=m
+            aq.Frame.Bar.Highlight.Glass.ImageRectOffset=p
+
+            ad(
+                aq.Frame,
+                0.12,
+                {
+                    Position=UDim2.new(0,h,0.5,0),
+                },
+                Enum.EasingStyle.Quint,
+                Enum.EasingDirection.Out
+            ):Play()
+        end)
+
+        if as then
+            as:Disconnect()
+        end
+
+        as=ae.InputEnded:Connect(function(d)
+            if not al.Window.IsToggleDragging then
+                return
+            end
+
+            if
+                d.UserInputType~=Enum.UserInputType.MouseButton1
+                and d.UserInputType~=Enum.UserInputType.Touch
+            then
+                return
+            end
+
+            al.Window.IsToggleDragging=false
+
+            if ar then
+                ar:Disconnect()
+                ar=nil
+            end
+
+            if as then
+                as:Disconnect()
+                as=nil
+            end
+
+            al.WindUI.CurrentInput=nil
+
+            -- =================================================
+            -- SCROLL / CANCELLED TOUCH
+            -- =================================================
+            if aB or cancelled then
+                return
+            end
+
+            -- =================================================
+            -- NORMAL TAP
+            -- =================================================
+            if not b then
+                ax:Set(
+                    not ax.Value,
+                    true,
+                    false
+                )
+            else
+                -- =================================================
+                -- HORIZONTAL DRAG
+                -- =================================================
+                local f=aq.Frame.Position.X.Offset
+                local g=f+at/2
+                local h=g>au/2
+
+                ax:Set(
+                    h,
+                    true,
+                    false
+                )
+            end
+
+            ad(
+                aq.Frame.Bar.UIScale,
+                0.23,
+                {Scale=1},
+                Enum.EasingStyle.Quint,
+                Enum.EasingDirection.Out
+            ):Play()
+
+            ad(
+                aq.Frame.Bar.Highlight.BarOverlay,
+                0.23,
+                {ImageTransparency=0},
+                Enum.EasingStyle.Quint,
+                Enum.EasingDirection.Out
+            ):Play()
+        end)
+    end
 end
 
 return ap,am
