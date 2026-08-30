@@ -6789,247 +6789,127 @@ end)
 end
 
 function am.Animate(av,aw,ax)
-    if not al.Window.IsToggleDragging then
-        al.Window.IsToggleDragging=true
+if not al.Window.IsToggleDragging then
+al.Window.IsToggleDragging=true
 
-        local ay=aw.Position.X
-        local az=aw.Position.Y
-        local aA=aq.Frame.Position.X.Offset
+local ay=aw.Position.X
+local az=aw.Position.Y
+local aA=aq.Frame.Position.X.Offset
+local aB=false
+local b=false
 
-        local aB=false
-        local b=false
-        local cancelled=false
+ad(
+aq.Frame.Bar.UIScale,
+0.28,
+{Scale=1.5},
+Enum.EasingStyle.Quint,
+Enum.EasingDirection.Out
+):Play()
+ad(
+aq.Frame.Bar.Highlight.BarOverlay,
+0.28,
+{ImageTransparency=0.86},
+Enum.EasingStyle.Quint,
+Enum.EasingDirection.Out
+):Play()
 
-        local TOUCH_THRESHOLD=12
+if ar then
+ar:Disconnect()
+end
 
-        ad(
-            aq.Frame.Bar.UIScale,
-            0.28,
-            {Scale=1.5},
-            Enum.EasingStyle.Quint,
-            Enum.EasingDirection.Out
-        ):Play()
+ar=ae.InputChanged:Connect(function(d)
+if not al.Window.IsToggleDragging then
+return
+end
+if
+d.UserInputType~=Enum.UserInputType.MouseMovement
+and d.UserInputType~=Enum.UserInputType.Touch
+then
+return
+end
+if aB then
+return
+end
 
-        ad(
-            aq.Frame.Bar.Highlight.BarOverlay,
-            0.28,
-            {ImageTransparency=0.86},
-            Enum.EasingStyle.Quint,
-            Enum.EasingDirection.Out
-        ):Play()
+local f=math.abs(d.Position.X-ay)
+math.abs(d.Position.Y-az)
 
-        if ar then
-            ar:Disconnect()
-        end
+if not b and f>8 then
+b=true
+end
 
-        ar=ae.InputChanged:Connect(function(d)
-            if not al.Window.IsToggleDragging then
-                return
-            end
+local g=d.Position.X-ay
+local h=math.max(2,math.min(aA+g,au-at-2))
 
-            if
-                d.UserInputType~=Enum.UserInputType.MouseMovement
-                and d.UserInputType~=Enum.UserInputType.Touch
-            then
-                return
-            end
+local i=math.clamp((h-2)/(au-at-4),0,1)
 
-            if aB or cancelled then
-                return
-            end
+local l,m,p=am:GetGlassFrame(i)
+aq.Frame.Bar.Highlight.Glass.Image=l
+aq.Frame.Bar.Highlight.Glass.ImageRectSize=m
+aq.Frame.Bar.Highlight.Glass.ImageRectOffset=p
 
-            local dx=d.Position.X-ay
-            local dy=d.Position.Y-az
+ad(aq.Frame,0.12,{
+Position=UDim2.new(0,h,0.5,0),
+},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
+end)
 
-            local absX=math.abs(dx)
-            local absY=math.abs(dy)
+if as then
+as:Disconnect()
+end
 
-            -- =================================================
-            -- MOBILE TOUCH DETECTION
-            -- =================================================
-            if d.UserInputType==Enum.UserInputType.Touch then
+as=ae.InputEnded:Connect(function(d)
+if not al.Window.IsToggleDragging then
+return
+end
+if
+d.UserInputType~=Enum.UserInputType.MouseButton1
+and d.UserInputType~=Enum.UserInputType.Touch
+then
+return
+end
 
-                -- Belum cukup bergerak = jangan lakukan apa-apa
-                if not b then
+al.Window.IsToggleDragging=false
 
-                    if math.sqrt(dx*dx+dy*dy) < TOUCH_THRESHOLD then
-                        return
-                    end
+if ar then
+ar:Disconnect()
+ar=nil
+end
+if as then
+as:Disconnect()
+as=nil
+end
 
-                    -- Gerakan vertikal = SCROLL
-                    if absY > absX then
-                        cancelled=true
-                        aB=true
-                        al.Window.IsToggleDragging=false
+al.WindUI.CurrentInput=nil
 
-                        if ar then
-                            ar:Disconnect()
-                            ar=nil
-                        end
+if aB then
+return
+end
 
-                        if as then
-                            as:Disconnect()
-                            as=nil
-                        end
+if not b then
+ax:Set(not ax.Value,true,false)
+else
+local f=aq.Frame.Position.X.Offset
+local g=f+at/2
+local h=g>au/2
+ax:Set(h,true,false)
+end
 
-                        al.WindUI.CurrentInput=nil
-
-                        -- Kembalikan knob ke posisi awal
-                        aq.Frame.Position=UDim2.new(
-                            0,
-                            aA,
-                            0.5,
-                            0
-                        )
-
-                        -- Reset efek visual
-                        ad(
-                            aq.Frame.Bar.UIScale,
-                            0.23,
-                            {Scale=1},
-                            Enum.EasingStyle.Quint,
-                            Enum.EasingDirection.Out
-                        ):Play()
-
-                        ad(
-                            aq.Frame.Bar.Highlight.BarOverlay,
-                            0.23,
-                            {ImageTransparency=0},
-                            Enum.EasingStyle.Quint,
-                            Enum.EasingDirection.Out
-                        ):Play()
-
-                        return
-                    end
-
-                    -- Gerakan horizontal = baru dianggap drag
-                    b=true
-                end
-
-            else
-                -- =================================================
-                -- MOUSE
-                -- =================================================
-                if not b and absX>8 then
-                    b=true
-                end
-            end
-
-            -- Belum menjadi drag
-            if not b then
-                return
-            end
-
-            -- =================================================
-            -- HORIZONTAL DRAG
-            -- =================================================
-            local g=dx
-            local h=math.max(
-                2,
-                math.min(aA+g,au-at-2)
-            )
-
-            local i=math.clamp(
-                (h-2)/(au-at-4),
-                0,
-                1
-            )
-
-            local l,m,p=am:GetGlassFrame(i)
-
-            aq.Frame.Bar.Highlight.Glass.Image=l
-            aq.Frame.Bar.Highlight.Glass.ImageRectSize=m
-            aq.Frame.Bar.Highlight.Glass.ImageRectOffset=p
-
-            ad(
-                aq.Frame,
-                0.12,
-                {
-                    Position=UDim2.new(0,h,0.5,0),
-                },
-                Enum.EasingStyle.Quint,
-                Enum.EasingDirection.Out
-            ):Play()
-        end)
-
-        if as then
-            as:Disconnect()
-        end
-
-        as=ae.InputEnded:Connect(function(d)
-            if not al.Window.IsToggleDragging then
-                return
-            end
-
-            if
-                d.UserInputType~=Enum.UserInputType.MouseButton1
-                and d.UserInputType~=Enum.UserInputType.Touch
-            then
-                return
-            end
-
-            al.Window.IsToggleDragging=false
-
-            if ar then
-                ar:Disconnect()
-                ar=nil
-            end
-
-            if as then
-                as:Disconnect()
-                as=nil
-            end
-
-            al.WindUI.CurrentInput=nil
-
-            -- =================================================
-            -- SCROLL / CANCELLED TOUCH
-            -- =================================================
-            if aB or cancelled then
-                return
-            end
-
-            -- =================================================
-            -- NORMAL TAP
-            -- =================================================
-            if not b then
-                ax:Set(
-                    not ax.Value,
-                    true,
-                    false
-                )
-            else
-                -- =================================================
-                -- HORIZONTAL DRAG
-                -- =================================================
-                local f=aq.Frame.Position.X.Offset
-                local g=f+at/2
-                local h=g>au/2
-
-                ax:Set(
-                    h,
-                    true,
-                    false
-                )
-            end
-
-            ad(
-                aq.Frame.Bar.UIScale,
-                0.23,
-                {Scale=1},
-                Enum.EasingStyle.Quint,
-                Enum.EasingDirection.Out
-            ):Play()
-
-            ad(
-                aq.Frame.Bar.Highlight.BarOverlay,
-                0.23,
-                {ImageTransparency=0},
-                Enum.EasingStyle.Quint,
-                Enum.EasingDirection.Out
-            ):Play()
-        end)
-    end
+ad(
+aq.Frame.Bar.UIScale,
+0.23,
+{Scale=1},
+Enum.EasingStyle.Quint,
+Enum.EasingDirection.Out
+):Play()
+ad(
+aq.Frame.Bar.Highlight.BarOverlay,
+0.23,
+{ImageTransparency=0},
+Enum.EasingStyle.Quint,
+Enum.EasingDirection.Out
+):Play()
+end)
+end
 end
 
 return ap,am
@@ -7243,22 +7123,86 @@ local an=ah.WindUI.GenerateGUID()
 if ah.Window.NewElements and am.Animate then
 if ai.Type=="Toggle"then
 aa.AddSignal(al.ToggleFrame.Hitbox.InputBegan,function(ao)
-if
-not ah.Window.IsToggleDragging
-and(
-ao.UserInputType==Enum.UserInputType.MouseButton1
-or ao.UserInputType==Enum.UserInputType.Touch
-)
-then
-if ah.WindUI.CurrentInput and ah.WindUI.CurrentInput~=an then
-return
-end
 
-ah.WindUI.CurrentInput=an
-am:Animate(ao,ai)
-end
+    if ah.Window.IsToggleDragging then
+        return
+    end
+
+    if
+        ao.UserInputType~=Enum.UserInputType.MouseButton1
+        and ao.UserInputType~=Enum.UserInputType.Touch
+    then
+        return
+    end
+
+    if ah.WindUI.CurrentInput and ah.WindUI.CurrentInput~=an then
+        return
+    end
+
+    -- =====================================================
+    -- CEK APAKAH TOUCH TEPAT DI SWITCH
+    -- =====================================================
+    local position = ao.Position
+
+    local switchPos = al.AbsolutePosition
+    local switchSize = al.AbsoluteSize
+
+    local insideSwitch =
+        position.X >= switchPos.X
+        and position.X <= switchPos.X + switchSize.X
+        and position.Y >= switchPos.Y
+        and position.Y <= switchPos.Y + switchSize.Y
+
+    -- =====================================================
+    -- MOUSE / DESKTOP
+    -- Tetap normal: sekali klik
+    -- =====================================================
+    if ao.UserInputType==Enum.UserInputType.MouseButton1 then
+
+        ah.WindUI.CurrentInput=an
+        am:Animate(ao,ai)
+        return
+    end
+
+    -- =====================================================
+    -- MOBILE
+    -- Tepat switch = 1 TAP
+    -- Area tulisan/row = 2 TAP
+    -- =====================================================
+    if insideSwitch then
+
+        ah.WindUI.CurrentInput=an
+        am:Animate(ao,ai)
+        return
+    end
+
+    -- =====================================================
+    -- TOUCH DI AREA ROW / TULISAN
+    -- Perlu DOUBLE TAP
+    -- =====================================================
+    local now = tick()
+
+    if ai._LastRowTap and (now-ai._LastRowTap) <= 0.35 then
+
+        ai._LastRowTap=nil
+
+        ah.WindUI.CurrentInput=an
+        am:Animate(ao,ai)
+
+    else
+
+        -- TAP PERTAMA:
+        -- jangan lakukan apa-apa
+        ai._LastRowTap=now
+
+        task.delay(0.4,function()
+            if ai._LastRowTap == now then
+                ai._LastRowTap=nil
+            end
+        end)
+
+    end
 end)
-end
 
 
 
