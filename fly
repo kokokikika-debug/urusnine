@@ -1,7 +1,3 @@
--- KIX HUB - 99 Nights in the Forest
--- Custom UI Refactored with NaN God Mode, Custom Bring, & Advanced Movement/Vision Logics
-
-
 local KixHubSavedState = getgenv().KixHubSavedState
 if type(KixHubSavedState) ~= "table" then
     KixHubSavedState = {}
@@ -1189,8 +1185,10 @@ local function startFlying()
         
         if hrp:FindFirstChild("Running") then hrp.Running.Volume = 0 end
         
-        currentR6Track = R6Tracks.Hover
-        if currentR6Track then currentR6Track:Play() end
+        -- Superhero flight:
+        -- Jangan gunakan animasi SlowFly/FastFly karena bisa
+        -- membuat tangan dan kaki bergerak seperti sedang berlari.
+        currentR6Track = nil
         
         if not FlySound then
             FlySound = Instance.new("Sound")
@@ -1333,26 +1331,13 @@ local function startFlying()
 
         if isR6Avatar then
 
-            local desiredTrack = R6Tracks.Hover
+            -- Superhero pose dikontrol oleh armConnection.
+            -- Tidak menggunakan animasi Fly/SlowFly/FastFly,
+            -- supaya tangan dan kaki tidak bergerak sendiri.
 
-            if moveVec.Magnitude > 0.05 then
-
-                if speed > 25 then
-                    desiredTrack = R6Tracks.FastFly
-                else
-                    desiredTrack = R6Tracks.SlowFly
-                end
-
-            end
-
-            if currentR6Track ~= desiredTrack and desiredTrack then
-
-                if currentR6Track then
-                    currentR6Track:Stop()
-                end
-
-                currentR6Track = desiredTrack
-                currentR6Track:Play()
+            if currentR6Track then
+                currentR6Track:Stop()
+                currentR6Track = nil
             end
 
         elseif hasAnims and MyCustomAnimator then
@@ -1639,7 +1624,7 @@ local themes = {
 local themeIndex = 1
 
 local Window = WindUI:CreateWindow({
-    Title = 'KIXDEV HUB',
+    Title = 'KIXDEV',
     Icon = 'crown',
     Folder = 'KixHub',
     Size = UDim2.fromOffset(500, 350),
@@ -1885,6 +1870,7 @@ pcall(function()
     end, 990)
 end)
 
+--[[
 -- Mobile UI Toggle
 local CoreGui = game:GetService("CoreGui")
 local vim = game:GetService("VirtualInputManager")
@@ -1951,6 +1937,7 @@ if not CoreGui:FindFirstChild("KixHubMobileToggle") then
         end
     end)
 end
+]]
 
 local Tabs = {
     Home = Window:Tab({Title = 'Home', Icon = 'house'}),
