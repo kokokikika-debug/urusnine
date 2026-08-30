@@ -1705,6 +1705,7 @@ task.spawn(function()
     end
 end)
 
+--[[
 task.spawn(function()
     local TweenService = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
@@ -1855,6 +1856,7 @@ task.spawn(function()
         end
     end
 end)
+]]
 
 pcall(function()
     Window:CreateTopbarButton('TransparencyToggle', 'eye', function()
