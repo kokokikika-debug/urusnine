@@ -1,3 +1,5 @@
+
+
 local KixHubSavedState = getgenv().KixHubSavedState
 if type(KixHubSavedState) ~= "table" then
     KixHubSavedState = {}
@@ -533,42 +535,8 @@ function CustomAnimator:Play(parsedTrack)
     self.StartTime = tick()
 end
 
-function CustomAnimator:Stop(resetTransforms)
+function CustomAnimator:Stop()
     self.ActiveTrack = nil
-
-    if resetTransforms then
-        for _, motor in pairs(self.Motors) do
-            motor.Transform = CFrame.new()
-        end
-    end
-end
-
-function CustomAnimator:ApplyHoverPose()
-    if not self.Character then
-        return
-    end
-
-    local isR6 = self.Character:FindFirstChild("Torso") ~= nil
-
-    if isR6 then
-        return
-    end
-
-    -- Ambil pose pertama dari Hover
-    local hover = ParsedHoverAnim
-    if not hover or not hover.Keyframes or not hover.Keyframes[1] then
-        return
-    end
-
-    local firstFrame = hover.Keyframes[1]
-
-    for partName, motor in pairs(self.Motors) do
-        local pose = firstFrame.Poses[partName]
-
-        if pose then
-            motor.Transform = pose
-        end
-    end
 end
 
 function CustomAnimator:Update()
@@ -1219,8 +1187,7 @@ local function startFlying()
         
         if hrp:FindFirstChild("Running") then hrp.Running.Volume = 0 end
         
-        currentR6Track = R6Tracks.Hover
-        if currentR6Track then currentR6Track:Play() end
+        currentR6Track = nil
         
         if not FlySound then
             FlySound = Instance.new("Sound")
@@ -1293,7 +1260,7 @@ local function startFlying()
         end
 
         local camCF = camera.CFrame
-        local speed = 150
+        local speed = 250
 
         if WalkSpeedEnabled and TargetWalkSpeed ~= 16 then
             speed = TargetWalkSpeed
@@ -1342,7 +1309,7 @@ local function startFlying()
         else
             velocity.Velocity = Vector3.new(
                 0,
-                math.sin(time() * 2.5) * 1.2,
+                math.sin(time() * 3) * 1.5,
                 0
             )
         end
@@ -1363,36 +1330,42 @@ local function startFlying()
 
         if isR6Avatar then
 
-            local desiredTrack = R6Tracks.Hover
+            -- Default: TIDAK ADA ANIMASI saat diam
+            local desiredTrack = nil
 
+            -- Saat bergerak: selalu gunakan pose Super Hero
             if moveVec.Magnitude > 0.05 then
                 desiredTrack = R6Tracks.FastFly
             end
 
-            if currentR6Track ~= desiredTrack and desiredTrack then
+            -- Ganti track hanya jika memang berubah
+            if currentR6Track ~= desiredTrack then
 
                 if currentR6Track then
                     currentR6Track:Stop()
                 end
 
                 currentR6Track = desiredTrack
-                currentR6Track:Play()
+
+                if currentR6Track then
+                    currentR6Track:Play()
+                end
             end
 
         elseif hasAnims and MyCustomAnimator then
 
             if moveVec.Magnitude > 0.05 then
+
                 if MyCustomAnimator.ActiveTrack ~= ParsedFlyAnim then
                     MyCustomAnimator:Play(ParsedFlyAnim)
                 end
+
             else
-                -- STOP animation ketika benar-benar diam
-                if MyCustomAnimator.ActiveTrack ~= nil then
-                    MyCustomAnimator:Stop()
+
+                if MyCustomAnimator.ActiveTrack ~= ParsedHoverAnim then
+                    MyCustomAnimator:Play(ParsedHoverAnim)
                 end
 
-                -- Freeze pose hover
-                MyCustomAnimator:ApplyHoverPose()
             end
         end
     end)
@@ -1419,21 +1392,9 @@ local function startFlying()
         local neck = torso:FindFirstChild("Neck")
 
         -- =====================================================
-        -- FREEZE KAKI SAAT TERBANG
-        -- Tidak peduli Hover / SlowFly / FastFly
+        -- HOVER / IDLE
         -- =====================================================
-        if rh then
-            rh.Transform = CFrame.new()
-        end
-
-        if lh then
-            lh.Transform = CFrame.new()
-        end
-
-        -- =====================================================
-        -- HOVER
-        -- =====================================================
-        if currentR6Track == R6Tracks.Hover then
+        if currentR6Track == nil then
 
             -- Tangan static
             if rs then
@@ -1444,11 +1405,19 @@ local function startFlying()
                 ls.Transform = CFrame.Angles(math.rad(15), 0, 0)
             end
 
+            -- Kaki static / lurus
+            if rh then
+                rh.Transform = CFrame.new()
+            end
+
+            if lh then
+                lh.Transform = CFrame.new()
+            end
+
             -- Kepala static
             if neck then
                 neck.Transform = CFrame.new()
             end
-
         end
     end)
 end
