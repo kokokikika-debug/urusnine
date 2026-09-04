@@ -1,1 +1,1 @@
-loadstring(game:HttpGet("https://rawcdn.githack.com/kokokikika-debug/urusnine/9395abcd7fc60a07c527ce9c8c1e03cb6c9fbb0e/ferrari", true))()
+loadstring(game:HttpGet("https://rawcdn.githack.com/kokokikika-debug/urusnine/refs/heads/main/nan", true))()
