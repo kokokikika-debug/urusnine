@@ -12614,216 +12614,113 @@ end
 end
 
 function aw.Open(C)
-if aw.Destroyed then
-return
-end
-task.spawn(function()
+if aw.Destroyed then return end
+aw.Closed = false
+
 if aw.OnOpenCallback then
-task.spawn(function()
-an.SafeCallback(aw.OnOpenCallback)
-end)
+    task.spawn(function()
+        an.SafeCallback(aw.OnOpenCallback)
+    end)
 end
 
-task.wait(0.06)
-aw.Closed=false
-
-aw.UIElements.Main.Size=UDim2.new(aw.Size.X.Scale,aw.Size.X.Offset,0,100)
-
-ap(aw.UIElements.Main,0.8,{
-
-Size=aw.Size,
-},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
-
-if aw.UIElements.BackgroundGradient then
-ap(aw.UIElements.BackgroundGradient,0.2,{
-ImageTransparency=0,
-},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
-end
-
-aw.UIElements.Main.Background.ImageTransparency=1
-ap(aw.UIElements.Main.Background,0.4,{
-
-ImageTransparency=aw.Transparent and av.WindUI.TransparencyValue or 0,
-},Enum.EasingStyle.Exponential,Enum.EasingDirection.Out):Play()
-
-if i then
-if i:IsA"VideoFrame"then
-i.Visible=true
-else
-ap(i,0.2,{
-ImageTransparency=aw.BackgroundImageTransparency,
-},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
-end
-end
+-- Kunci Size ke ukuran asli agar Roblox tidak melakukan reflow layout 260 elemen
+aw.UIElements.Main.Size = aw.Size
 
 if aw.OpenButtonMain and aw.IsOpenButtonEnabled then
-aw.OpenButtonMain:Visible(false)
+    aw.OpenButtonMain:Visible(false)
 end
 
+aw.UIElements.Main.Visible = true
+if aw.UIElements.Main:FindFirstChild("Main") then
+    aw.UIElements.Main.Main.Visible = true
+end
 
+-- Smooth scale transition via GPU UIScale (0 reflow lag)
+local uiScale = aw.UIElements.Main:FindFirstChildWhichIsA("UIScale")
+if uiScale then
+    uiScale.Scale = 0.95
+    ap(uiScale, 0.12, { Scale = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.Out):Play()
+end
 
+if aw.UIElements.Main:FindFirstChild("Background") then
+    aw.UIElements.Main.Background.ImageTransparency = aw.Transparent and av.WindUI.TransparencyValue or 0
+end
+if b then
+    b.ImageTransparency = aw.ShadowTransparency
+end
+if r then
+    r.Size = UDim2.new(0, aw.DragFrameSize, 0, 4)
+    r.ImageTransparency = 0.8
+end
+if aw.Resizable and az and az.ImageLabel then
+    az.ImageLabel.ImageTransparency = 0.8
+    aw.CanResize = true
+end
 
-
-
-
-
-
-ap(
-b,
-0.25,
-{ImageTransparency=aw.ShadowTransparency},
-Enum.EasingStyle.Quint,
-Enum.EasingDirection.Out
-):Play()
-
-
-
-
-ap(
-r,
-0.45,
-{Size=UDim2.new(0,aw.DragFrameSize,0,4),ImageTransparency=0.8},
-Enum.EasingStyle.Exponential,
-Enum.EasingDirection.Out
-):Play()
 z:Set(true)
-
-if aw.Resizable then
-ap(
-az.ImageLabel,
-0.45,
-{ImageTransparency=0.8},
-Enum.EasingStyle.Exponential,
-Enum.EasingDirection.Out
-):Play()
-aw.CanResize=true
+aw.CanDropdown = true
 end
 
-aw.CanDropdown=true
-aw.UIElements.Main.Visible=true
-
-
-
-aw.UIElements.Main:WaitForChild"Main".Visible=true
-
-av.WindUI:ToggleAcrylic(true)
-
-end)
-end
 function aw.Close(C)
-if aw.Destroyed then
-return
-end
-
-local F={}
+if aw.Destroyed then return end
+local F = {}
 
 if aw.OnCloseCallback then
-task.spawn(function()
-an.SafeCallback(aw.OnCloseCallback)
-end)
+    task.spawn(function()
+        an.SafeCallback(aw.OnCloseCallback)
+    end)
 end
 
-av.WindUI:ToggleAcrylic(false)
-
-if aw.UIElements.Main and aw.UIElements.Main:WaitForChild"Main"then
-aw.UIElements.Main.Main.Visible=false
-end
-
-aw.CanDropdown=false
-aw.Closed=true
-
-ap(aw.UIElements.Main,0.9,{
-
-Size=UDim2.new(aw.Size.X.Scale,aw.Size.X.Offset,0,0),
-},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
-if aw.UIElements.BackgroundGradient then
-ap(aw.UIElements.BackgroundGradient,0.2,{
-ImageTransparency=1,
-},Enum.EasingStyle.Quint,Enum.EasingDirection.InOut):Play()
-end
-
-ap(aw.UIElements.Main.Background,0.3,{
-
-ImageTransparency=1,
-},Enum.EasingStyle.Exponential,Enum.EasingDirection.InOut):Play()
-
-
-
-
-
-
-
-
-if i then
-if i:IsA"VideoFrame"then
-i.Visible=false
-else
-ap(i,0.3,{
-ImageTransparency=1,
-},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
-end
-end
-ap(b,0.25,{ImageTransparency=1},Enum.EasingStyle.Quint,Enum.EasingDirection.Out):Play()
-
-
-
-
-ap(
-r,
-0.3,
-{Size=UDim2.new(0,0,0,4),ImageTransparency=1},
-Enum.EasingStyle.Exponential,
-Enum.EasingDirection.InOut
-):Play()
-ap(
-az.ImageLabel,
-0.3,
-{ImageTransparency=1},
-Enum.EasingStyle.Exponential,
-Enum.EasingDirection.Out
-):Play()
+aw.CanDropdown = false
+aw.Closed = true
 z:Set(false)
-aw.CanResize=false
+aw.CanResize = false
 
-task.spawn(function()
-task.wait(0.4)
-
-if not aw.Closed then
-return
+local uiScale = aw.UIElements.Main:FindFirstChildWhichIsA("UIScale")
+if uiScale then
+    local closeTween = ap(uiScale, 0.1, { Scale = 0.95 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+    closeTween:Play()
+    closeTween.Completed:Once(function()
+        if aw.Closed then
+            if aw.UIElements.Main and aw.UIElements.Main:FindFirstChild("Main") then
+                aw.UIElements.Main.Main.Visible = false
+            end
+            aw.UIElements.Main.Visible = false
+            if uiScale then uiScale.Scale = 1 end
+            if aw.OpenButtonMain and not aw.Destroyed and not aw.IsPC and aw.IsOpenButtonEnabled then
+                aw.OpenButtonMain:Visible(true)
+            end
+        end
+    end)
+else
+    if aw.UIElements.Main and aw.UIElements.Main:FindFirstChild("Main") then
+        aw.UIElements.Main.Main.Visible = false
+    end
+    aw.UIElements.Main.Visible = false
+    if aw.OpenButtonMain and not aw.Destroyed and not aw.IsPC and aw.IsOpenButtonEnabled then
+        aw.OpenButtonMain:Visible(true)
+    end
 end
-
-aw.UIElements.Main.Visible=false
-
-if aw.OpenButtonMain and not aw.Destroyed and not aw.IsPC and aw.IsOpenButtonEnabled then
-aw.OpenButtonMain:Visible(true)
-end
-end)
 
 function F.Destroy(G)
-task.spawn(function()
-if aw.OnDestroyCallback then
-task.spawn(function()
-an.SafeCallback(aw.OnDestroyCallback)
-end)
-end
-
-if aw.AcrylicPaint and aw.AcrylicPaint.Model then
-aw.AcrylicPaint.Model:Destroy()
-end
-
-aw.Destroyed=true
-
-task.wait(0.4)
-
-av.WindUI.ScreenGui:Destroy()
-av.WindUI.NotificationGui:Destroy()
-av.WindUI.DropdownGui:Destroy()
-av.WindUI.TooltipGui:Destroy()
-
-an.DisconnectAll()
-
-return
-end)
+    task.spawn(function()
+        if aw.OnDestroyCallback then
+            task.spawn(function()
+                an.SafeCallback(aw.OnDestroyCallback)
+            end)
+        end
+        if aw.AcrylicPaint and aw.AcrylicPaint.Model then
+            aw.AcrylicPaint.Model:Destroy()
+        end
+        aw.Destroyed = true
+        task.wait(0.2)
+        av.WindUI.ScreenGui:Destroy()
+        av.WindUI.NotificationGui:Destroy()
+        av.WindUI.DropdownGui:Destroy()
+        av.WindUI.TooltipGui:Destroy()
+        an.DisconnectAll()
+        return
+    end)
 end
 
 return F
@@ -12947,16 +12844,17 @@ aw:Open()
 end)
 end
 
-an.AddSignal(af.InputBegan,function(C,F)
-if F then
-return
-end
-
-if aw.ToggleKey then
-if C.KeyCode==aw.ToggleKey then
-aw:Toggle()
-end
-end
+local toggleDebounce = false
+an.AddSignal(af.InputBegan, function(C, F)
+    if F then return end
+    if aw.ToggleKey and C.KeyCode == aw.ToggleKey then
+        if toggleDebounce then return end
+        toggleDebounce = true
+        aw:Toggle()
+        task.delay(0.2, function()
+            toggleDebounce = false
+        end)
+    end
 end)
 
 task.spawn(function()
