@@ -28,7 +28,7 @@ local function post(path, body)
     return status, result, nil
 end
 
-local payloadStatus, payloadBody, payloadError = post("/v1/temporary/load/99nights-urus", {
+local payloadStatus, payloadBody, payloadError = post("/v1/temporary/load/99nights-usa", {
     client_version = "kixhub-urus-loader/1.1",
 })
 
@@ -42,7 +42,7 @@ if type(loadstring) ~= "function" then
     return
 end
 
-local compiled, chunk = pcall(loadstring, payloadBody.source, "=KixHub/99nights-urus")
+local compiled, chunk = pcall(loadstring, payloadBody.source, "=KixHub/99nights-usa")
 if not compiled or type(chunk) ~= "function" then
     warn("[KixHub Urus] Payload compile failed: " .. tostring(chunk))
     return
