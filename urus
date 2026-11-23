@@ -1,16 +1,54 @@
-local H=game:GetService("HttpService")
-local Q=(type(request)=="function" and request)or(type(http_request)=="function" and http_request)or(type(syn)=="table" and type(syn.request)=="function" and syn.request)
-if not Q then warn("[KixHub] HTTP request is unavailable.") return end
+local HttpService = game:GetService("HttpService")
+local requestFunction = type(request) == "function" and request
+    or type(http_request) == "function" and http_request
+    or type(syn) == "table" and type(syn.request) == "function" and syn.request
 
-local B="https://".."kixhub-distribution"..".".."lirikkuviral"..".".."workers"..".dev"
-local E=H:JSONEncode({client_version="kixhub-usa-loader/1.1",response_format="source"})
-local R=Q({Url=B.."/v1/temporary/load/99nights-usa",Method="POST",Headers={["Content-Type"]="application/json"},Body=E,body=E})
-local S=tonumber(R and(R.StatusCode or R.Status or R.status_code))or 0
-local P=R and(R.Body or R.body)or""
-if S~=200 or type(P)~="string" or P=="" then warn("[KixHub] Payload request failed: HTTP "..S) return end
-if type(loadstring)~="function" then warn("[KixHub] loadstring is unavailable.") return end
+if not requestFunction then
+    warn("[KixHub] Executor HTTP request is unavailable.")
+    return
+end
 
-local F,O=pcall(loadstring,P,"=KixHub/99nights-usa")
-if not F or type(O)~="function" then warn("[KixHub] Payload compile failed: "..tostring(O)) return end
-local X,E2=pcall(O)
-if not X then warn("[KixHub] Payload runtime failed: "..tostring(E2)) end
+local baseUrl = "https://kixhub-distribution.lirikkuviral.workers.dev"
+
+local function post(path, body)
+    local encoded = HttpService:JSONEncode(body)
+    local response = requestFunction({
+        Url = baseUrl .. path,
+        Method = "POST",
+        Headers = { ["Content-Type"] = "application/json" },
+        Body = encoded,
+        body = encoded,
+    })
+    local status = tonumber(response and (response.StatusCode or response.Status or response.status_code)) or 0
+    local raw = response and (response.Body or response.body) or ""
+    local decoded, result = pcall(HttpService.JSONDecode, HttpService, raw)
+    if not decoded or type(result) ~= "table" then
+        return status, nil, "The distribution service returned invalid JSON."
+    end
+    return status, result, nil
+end
+
+local payloadStatus, payloadBody, payloadError = post("/v1/temporary/load/99nights-usa", {
+    client_version = "kixhub-usa-loader/1.0",
+})
+
+if payloadStatus ~= 200 or not payloadBody or payloadBody.authorized ~= true or type(payloadBody.source) ~= "string" then
+    warn("[KixHub] Payload request failed: " .. tostring((payloadBody and payloadBody.error) or payloadError or payloadStatus))
+    return
+end
+
+if type(loadstring) ~= "function" then
+    warn("[KixHub] loadstring is unavailable in this executor.")
+    return
+end
+
+local compiled, chunk = pcall(loadstring, payloadBody.source, "=KixHub/99nights-usa")
+if not compiled or type(chunk) ~= "function" then
+    warn("[KixHub] Payload compile failed: " .. tostring(chunk))
+    return
+end
+
+local ran, runtimeError = pcall(chunk)
+if not ran then
+    warn("[KixHub] Payload runtime failed: " .. tostring(runtimeError))
+end
