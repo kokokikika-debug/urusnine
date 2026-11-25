@@ -22,18 +22,25 @@ local function getRequestFunctions()
 end
 
 local requestFunctions = getRequestFunctions()
-if #requestFunctions == 0 then
-    warn("[KixHub] This executor does not expose an HTTP request function.")
-    return
-end
-
 local env = getgenv and getgenv() or _G
 local now = os.clock()
-if type(env) == "table" and tonumber(env.KixHubLoaderLastRequest) and now - env.KixHubLoaderLastRequest < 3 then
-    warn("[KixHub] Loader was just requested. Wait a moment before running it again.")
-    return
+local executionState
+if type(env) ~= "table" then return end
+executionState = env.KixHubLoaderExecution
+if type(executionState) ~= "table" then
+    executionState = {}
+    env.KixHubLoaderExecution = executionState
 end
-if type(env) == "table" then env.KixHubLoaderLastRequest = now end
+
+local activeSince = tonumber(executionState.StartedAt) or tonumber(env.KixHubLoaderLastRequest)
+if executionState.InFlight == true and activeSince and now - activeSince < 90 then return end
+if executionState.CompletedAt and now - (tonumber(executionState.CompletedAt) or 0) < 3 then return end
+-- Keep old loader copies from overlapping with this version during rollout.
+if tonumber(env.KixHubLoaderLastRequest) and now - env.KixHubLoaderLastRequest < 3 then return end
+
+executionState.InFlight = true
+executionState.StartedAt = now
+env.KixHubLoaderLastRequest = now
 
 local baseUrl = "https://kixhub-distribution.lirikkuviral.workers.dev"
 local playerId = ""
@@ -121,6 +128,12 @@ local function post(path, body)
     return status, nil, "HTTP " .. tostring(status) .. " returned non-JSON: " .. safeBodySnippet(raw), raw
 end
 
+local function runKixHubLoader()
+if #requestFunctions == 0 then
+    warn("[KixHub] This executor does not expose an HTTP request function.")
+    return false
+end
+
 local payloadStatus, payloadBody, payloadError = post("/v1/temporary/load/99nights-usa", {
     client_version = "kixhub-usa-loader/1.2",
     response_format = "source",
@@ -143,11 +156,31 @@ if type(loadstring) ~= "function" then
     return
 end
 
-local compiled, chunk = pcall(loadstring, payloadBody.source, "=KixHub/payload")
+-- Delta mobile may not accept the optional chunk-name argument consistently.
+-- Compile the delivered source with the one-argument form and preserve any
+-- compiler diagnostic returned by the executor.
+local compiled, chunk, compileError = pcall(loadstring, payloadBody.source)
 if not compiled or type(chunk) ~= "function" then
-    warn("[KixHub] Payload compile failed: " .. tostring(chunk))
+    local detail = compileError or chunk
+    if detail == nil then
+        detail = "Executor loadstring returned no function or error detail."
+    end
+    warn("[KixHub] Payload compile failed: " .. tostring(detail))
     return
 end
 
 local ran, runtimeError = pcall(chunk)
-if not ran then warn("[KixHub] Payload runtime failed: " .. tostring(runtimeError)) end
+if not ran then
+    warn("[KixHub] Payload runtime failed: " .. tostring(runtimeError))
+    return false
+end
+return true
+end
+
+local ranLoader, payloadLoaded = pcall(runKixHubLoader)
+executionState.InFlight = false
+executionState.CompletedAt = os.clock()
+executionState.Loaded = ranLoader and payloadLoaded == true
+if not ranLoader then
+    warn("[KixHub] Loader failed: " .. tostring(payloadLoaded))
+end
