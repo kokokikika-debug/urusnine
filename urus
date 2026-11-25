@@ -63,6 +63,10 @@ local function post(path, body)
         Headers = { ["Content-Type"] = "application/json", Accept = "text/plain, application/json" },
         Body = encoded,
         body = encoded,
+        -- Some mobile executors only inspect lowercase request fields.
+        url = baseUrl .. path,
+        method = "POST",
+        headers = { ["Content-Type"] = "application/json", Accept = "text/plain, application/json" },
     }
 
     local called, response, secondary
